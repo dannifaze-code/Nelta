@@ -4,8 +4,9 @@
 // Include melonDS headers (adjust paths based on your melonDS submodule location)
 #include "NDS.h"
 #include "SPU.h"
+#include "GPU.h" 
 
-EmulatorCore::EmulatorCore() : running(false) {
+EmulatorCore::EmulatorCore() : melonDSInstance(nullptr), running(false) {
     // melonDS instance initialization would go here...
     // melonDSInstance = new melonDS::NDS(...);
     
@@ -24,14 +25,24 @@ EmulatorCore::~EmulatorCore() {
     }
 }
 
+bool EmulatorCore::loadROM(const std::string &romPath) {
+    if (!melonDSInstance) return false;
+
+    // Placeholder for melonDS ROM loading logic
+    // e.g., melonDSInstance->LoadROM(romPath.c_str());
+    std::cout << "Loading ROM: " << romPath << std::endl;
+    
+    running = true; 
+    return true;
+}
+
 void EmulatorCore::runFrame() {
     if (!running || !melonDSInstance) return;
 
     // 1. Run the emulator for exactly one frame
-    // melonDSInstance->RunFrame(); // (or whatever melonDS's tick function is called in your version)
+    // melonDSInstance->RunFrame(); 
 
     // 2. Extract Audio from the SPU
-    // GetOutputSize() returns the number of sample frames (1 frame = 1 left + 1 right sample)
     int samplesAvailable = melonDSInstance->SPU.GetOutputSize(); 
     
     if (samplesAvailable > 0) {
@@ -44,4 +55,25 @@ void EmulatorCore::runFrame() {
         // 3. Push the audio to the SDL2 queue!
         audioEngine.queueAudio(audioBuffer);
     }
+}
+
+const uint32_t* EmulatorCore::getFramebuffer() const {
+    if (!melonDSInstance || !running) return nullptr;
+
+    // melonDS exposes the composited 256x384 frame here.
+    // Note: The exact variable name depends on the melonDS version you are building against.
+    // Replace 'Framebuffer' with the correct 2D array pointer from your melonDS instance.
+    // return melonDSInstance->GPU.Framebuffer; 
+    
+    return nullptr; 
+}
+
+void EmulatorCore::reset() {
+    if (melonDSInstance) {
+        // melonDSInstance->Reset();
+    }
+}
+
+bool EmulatorCore::isRunning() const {
+    return running;
 }
