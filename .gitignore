@@ -1,0 +1,32 @@
+# C++ build artifacts
+
+# Compiled object files
+*.o
+
+# Compiled dynamic libraries
+*.so
+*.dylib
+
+# Compiled static libraries
+*.a
+
+# Executables
+*.out
+*.exe
+
+# Build directories
+/build/
+/bin/
+/obj/
+
+# CMake build files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Visual Studio files
+*.sln
+*.vcproj
+*.vcxproj
+*.vcxproj.filters
