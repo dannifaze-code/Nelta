@@ -1,40 +1,34 @@
-# CMakeLists.txt
-
-# Minimum CMake version required
 cmake_minimum_required(VERSION 3.10)
+project(Nelta VERSION 1.0.0)
 
-# Project name and version
-project(Nelta VERSION 1.0 LANGUAGES C CXX)
-
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find required packages
-find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+# Find SDL2 installed on the system
 find_package(SDL2 REQUIRED)
 
-# Set include directories
-include_directories(${SDL2_INCLUDE_DIRS})
-include_directories(${Qt6_INCLUDE_DIRS})
+# Include our source directories
+include_directories(src)
 
-# Add melonDS integration (assuming melonDS is available as a submodule)
-add_subdirectory(melonDS)
+# Add your melonDS include paths here (adjust based on your melonDS folder structure)
+# include_directories(melonDs-master/src)
 
-# Source files
+# Define all the source files we wrote
 set(SOURCES
-    main.cpp
-    # Add other source files here
+    src/main.cpp
+    src/core/emulator_wrapper.cpp
+    src/audio/audio_engine.cpp
+    src/input/controller_manager.cpp
+    src/ui/widgets/game_viewport.cpp
+    src/cheats/cheat_manager.cpp
 )
 
-# Create executable target
+# Create the executable
 add_executable(Nelta ${SOURCES})
 
-# Link libraries
-target_link_libraries(Nelta Qt6::Core Qt6::Gui Qt6::Widgets SDL2::SDL2 melonDS)
+# Link SDL2 to the executable
+target_include_directories(Nelta PRIVATE ${SDL2_INCLUDE_DIRS})
+target_link_libraries(Nelta PRIVATE ${SDL2_LIBRARIES})
 
-# Set output directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-# Install target
-install(TARGETS Nelta DESTINATION bin)
+# Link melonDS core library
+# target_link_libraries(Nelta PRIVATE melonDS)
