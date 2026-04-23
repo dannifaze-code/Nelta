@@ -1,0 +1,1 @@
+#ifndef MAIN_WINDOW_H\n#define MAIN_WINDOW_H\n\n#include <QMainWindow>\n\nclass MainWindow : public QMainWindow {\n    Q_OBJECT\n\npublic:  \n    explicit MainWindow(QWidget *parent = nullptr);\n    ~MainWindow();\n\nprivate:  \n    void setupUI();\n};\n\n#endif // MAIN_WINDOW_H
