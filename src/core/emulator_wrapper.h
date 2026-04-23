@@ -17,7 +17,7 @@ public:
 
     bool loadROM(const std::string &romPath);
     void runFrame();
-    std::vector<unsigned char> getFramebuffer();
+    const uint32_t* getFramebuffer() const;
     void reset();
     bool isRunning() const;
 
