@@ -1,112 +1,282 @@
-cmake_minimum_required(VERSION 3.16)
-
-cmake_policy(VERSION 3.15)
-if (POLICY CMP0076)
-    cmake_policy(SET CMP0076 NEW)
-endif()
-
-set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
-
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/DefaultBuildFlags.cmake")
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
-
-option(USE_VCPKG "Use vcpkg for dependency packages" OFF)
-if (USE_VCPKG)
-	include(ConfigureVcpkg)
-endif()
-
-project(melonDS
-    VERSION 1.1
-    DESCRIPTION "DS emulator, sorta"
-    HOMEPAGE_URL "https://melonds.kuribo64.net"
-    LANGUAGES C CXX)
-
-include(CheckSymbolExists)
-include(CheckLibraryExists)
 include(CMakeDependentOption)
-include(CheckIPOSupported)
 
-include(SetupCCache)
-include(Sanitizers)
+include(FixInterfaceIncludes)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(SOURCES_QT_SDL
+    main.cpp
+    main_shaders.h
+    Screen.cpp
+    Window.cpp
+    EmuInstance.cpp
+    EmuInstanceAudio.cpp
+    EmuInstanceInput.cpp
+    EmuThread.cpp
+    CheatImportDialog.cpp
+    CheatsDialog.cpp
+    Config.cpp
+    DateTimeDialog.cpp
+    EmuSettingsDialog.cpp
+    PowerManagement/PowerManagementDialog.cpp
+    PowerManagement/resources/battery.qrc
+    InputConfig/InputConfigDialog.cpp
+    InputConfig/MapButton.h
+    InputConfig/resources/ds.qrc
+    VideoSettingsDialog.cpp
+    CameraSettingsDialog.cpp
+    AudioSettingsDialog.cpp
+    FirmwareSettingsDialog.cpp
+    PathSettingsDialog.cpp
+    MPSettingsDialog.cpp
+    WifiSettingsDialog.cpp
+    InterfaceSettingsDialog.cpp
+    ROMInfoDialog.cpp
+    RAMInfoDialog.cpp
+    TitleManagerDialog.cpp
+    OSD_shaders.h
+    font.h
+    Platform.cpp
+    Platform_AAC.cpp
+    QPathInput.h
+    SaveManager.cpp
+    CameraManager.cpp
+    AboutDialog.cpp
+    AboutDialog.h
+    AboutDialog.ui
+    ARCodeQDecl.h
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+    ArchiveUtil.h
+    ArchiveUtil.cpp
+
+    ../ScreenLayout.cpp
+    ../mic_blow.h
+
+    ../glad/glad.c
+    ../duckstation/gl/context.cpp
+
+    ${CMAKE_SOURCE_DIR}/res/melon.qrc
+
+    CLI.h
+    CLI.cpp
+
+    LANDialog.cpp
+    NetplayDialog.cpp
+)
+
+option(USE_QT6 "Use Qt 6 instead of Qt 5" ON)
+
+if (USE_QT6)
+    find_package(Qt6 COMPONENTS Core Gui Widgets Network Multimedia OpenGL OpenGLWidgets Svg REQUIRED)
+    set(QT_LINK_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia Qt6::OpenGL Qt6::OpenGLWidgets)
+else()
+    find_package(Qt5 COMPONENTS Core Gui Widgets Network Multimedia Svg REQUIRED)
+    set(QT_LINK_LIBS Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Network Qt5::Multimedia)
 endif()
 
-function(detect_architecture symbol arch)
-    if (NOT DEFINED ARCHITECTURE)
-        set(CMAKE_REQUIRED_QUIET 1)
-        check_symbol_exists("${symbol}" "" ARCHITECTURE_${arch})
-        unset(CMAKE_REQUIRED_QUIET)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
-        # The output variable needs to be unique across invocations otherwise
-        # CMake's crazy scope rules will keep it defined
-        if (ARCHITECTURE_${arch})
-            set(ARCHITECTURE "${arch}" PARENT_SCOPE)
-            set(ARCHITECTURE_${arch} 1 PARENT_SCOPE)
-            add_definitions(-DARCHITECTURE_${arch}=1)
-        endif()
-    endif()
-endfunction()
+find_package(Threads REQUIRED)
+find_package(PkgConfig REQUIRED)
 
-detect_architecture("__x86_64__" x86_64)
-detect_architecture("__i386__" x86)
-detect_architecture("__arm__" ARM)
-detect_architecture("__aarch64__" ARM64)
-
-cmake_dependent_option(ENABLE_JIT "Enable JIT recompiler" ON
-    "ARCHITECTURE STREQUAL x86_64 OR ARCHITECTURE STREQUAL ARM64;NOT ARCHITECTURE STREQUAL x86_64 OR NOT APPLE" OFF)
-cmake_dependent_option(ENABLE_JIT_PROFILING "Enable JIT profiling with VTune" OFF "ENABLE_JIT" OFF)
-option(ENABLE_OGLRENDERER "Enable OpenGL renderer" ON)
-
-check_ipo_supported(RESULT IPO_SUPPORTED)
-cmake_dependent_option(ENABLE_LTO_RELEASE "Enable link-time optimizations for release builds" ON "IPO_SUPPORTED" OFF)
-cmake_dependent_option(ENABLE_LTO "Enable link-time optimizations" OFF "IPO_SUPPORTED" OFF)
-
-if (ENABLE_LTO_RELEASE)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+if (BUILD_STATIC)
+    list(APPEND PKG_CONFIG_EXECUTABLE "--static")
 endif()
 
-if (ENABLE_LTO)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-endif()
+pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
+pkg_check_modules(LibArchive REQUIRED IMPORTED_TARGET libarchive)
+pkg_check_modules(Zstd REQUIRED IMPORTED_TARGET libzstd)
+pkg_check_modules(Faad REQUIRED IMPORTED_TARGET faad2)
 
-if (NOT APPLE)
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -s")
-endif()
+fix_interface_includes(PkgConfig::SDL2 PkgConfig::LibArchive)
+
+add_compile_definitions(ARCHIVE_SUPPORT_ENABLED)
+
+add_executable(melonDS ${SOURCES_QT_SDL})
+
+add_subdirectory("../../net"
+    ${CMAKE_BINARY_DIR}/net)
+
+target_link_libraries(melonDS PRIVATE net-utils)
 
 if (WIN32)
-    option(BUILD_STATIC "Statically link dependencies" OFF)
-    add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX)
-    if (NOT MINGW)
-        add_definitions(-D__WIN32__ -D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES)
-        if (BUILD_STATIC)
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_link_libraries(melonDS PUBLIC opengl32)
+
+    target_sources(melonDS PRIVATE
+        ../duckstation/gl/context_wgl.cpp
+
+        ../glad/glad_wgl.c
+    )
+
+    if (MINGW AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+        set_property(TARGET melonDS PROPERTY AUTORCC_OPTIONS "--no-zstd")
+    endif()
+
+    if (BUILD_STATIC)
+        find_package(SDL2 CONFIG COMPONENTS SDL2main)
+        if (TARGET SDL2::SDL2main)
+            target_link_libraries(melonDS PRIVATE SDL2::SDL2main)
         endif()
-    elseif (BUILD_STATIC AND MINGW)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+    endif()
+elseif (APPLE)
+    if (NOT USE_QT6)
+        find_library(COCOA_LIB Cocoa)
+        target_link_libraries(melonDS PRIVATE ${COCOA_LIB})
+    endif()
+    find_library(OPENGL_LIB OpenGL)
+    target_link_libraries(melonDS PRIVATE ${OPENGL_LIB})
+    target_sources(melonDS PRIVATE
+        ../duckstation/gl/context_agl.mm
+    )
+    set_source_files_properties(
+        ../duckstation/gl/context_agl.mm
+        PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations"
+    )
+else()
+    find_package(X11 REQUIRED)
+    find_package(EGL REQUIRED)
+
+    option(ENABLE_WAYLAND "Enable Wayland support" ON)
+
+    if (ENABLE_WAYLAND)
+        # we only need ECM for Wayland
+        # so we only require it from here
+        find_package(ECM REQUIRED NO_MODULE)
+        list(APPEND CMAKE_MODULE_PATH "${ECM_MODULE_PATH}")
+
+        find_package(Wayland REQUIRED Client)
+
+        target_compile_definitions(melonDS PRIVATE WAYLAND_ENABLED)
+
+        target_sources(melonDS PRIVATE
+            ../duckstation/gl/context_egl_wayland.cpp
+        )
+    endif()
+
+    target_sources(melonDS PRIVATE
+        ../duckstation/gl/context_egl.cpp
+        ../duckstation/gl/context_egl_x11.cpp
+        ../duckstation/gl/context_glx.cpp
+        ../duckstation/gl/x11_window.cpp
+
+        ../glad/glad_egl.c
+        ../glad/glad_glx.c
+    )
+    target_link_libraries(melonDS PRIVATE "${X11_LIBRARIES}" "${EGL_LIBRARIES}")
+    target_include_directories(melonDS PRIVATE "${X11_INCLUDE_DIR}")
+    add_compile_definitions(QAPPLICATION_CLASS=QApplication)
+endif()
+
+
+if (BUILD_STATIC)
+    qt_import_plugins(melonDS INCLUDE Qt::QSvgPlugin)
+    if (WIN32 AND USE_QT6)
+        qt_import_plugins(melonDS INCLUDE Qt::QModernWindowsStylePlugin)
+    endif()
+    if (USE_VCPKG AND UNIX AND NOT APPLE)
+        pkg_check_modules(ALSA REQUIRED IMPORTED_TARGET alsa)
+        target_link_libraries(melonDS PRIVATE PkgConfig::ALSA)
+    elseif (NOT APPLE)
+        target_link_options(melonDS PRIVATE -static)
     endif()
 endif()
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+target_include_directories(melonDS PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
-option(ENABLE_GDBSTUB "Enable GDB stub" ON)
-if (ENABLE_GDBSTUB)
-    add_definitions(-DGDBSTUB_ENABLED)
+if (USE_QT6)
+    target_include_directories(melonDS PUBLIC ${Qt6Gui_PRIVATE_INCLUDE_DIRS})
+else()
+    target_include_directories(melonDS PUBLIC ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+endif()
+target_link_libraries(melonDS PRIVATE core)
+target_link_libraries(melonDS PRIVATE PkgConfig::SDL2 PkgConfig::LibArchive PkgConfig::Zstd PkgConfig::Faad)
+target_link_libraries(melonDS PRIVATE ${QT_LINK_LIBS} ${CMAKE_DL_LIBS})
+
+if (WIN32)
+    option(PORTABLE "Make a portable build that looks for its configuration in the current directory" ON)
+
+    if (PORTABLE)
+        target_compile_definitions(melonDS PRIVATE WIN32_PORTABLE)
+    endif()
+
+    string(REPLACE . , MELON_RC_VERSION ${melonDS_VERSION})
+    configure_file("${CMAKE_SOURCE_DIR}/res/melon.rc.in" "${CMAKE_BINARY_DIR}/res/melon.rc")
+    target_sources(melonDS PUBLIC "${CMAKE_BINARY_DIR}/res/melon.rc")
+    target_include_directories(melonDS PRIVATE "${CMAKE_BINARY_DIR}/res")
+
+    if (${ARCHITECTURE} STREQUAL x86_64)
+        set(WIN32_ARCHITECTURE amd64)
+    elseif (${ARCHITECTURE} STREQUAL x86)
+        set(WIN32_ARCHITECTURE x86)
+    elseif (${ARCHITECTURE} MATCHES "ARM(64)?")
+        string(TOLOWER "${ARCHITECTURE}" WIN32_ARCHITECTURE)
+    endif()
+
+
+    target_link_libraries(melonDS PRIVATE ws2_32 iphlpapi)
+    set_target_properties(melonDS PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Debug>,OFF,ON>)
+
+    if (MINGW)
+        configure_file("${CMAKE_SOURCE_DIR}/res/xp.manifest.in" "${CMAKE_BINARY_DIR}/res/xp.manifest")
+    else()
+        # Work around faad2 unconditionally linking libm even on Windows
+        if (USE_VCPKG)
+            add_library(m STATIC)
+            target_link_libraries(melonDS PUBLIC m)
+        endif()
+    endif()
 endif()
 
-option(BUILD_QT_SDL "Build Qt/SDL frontend" ON)
+if (APPLE)
+    # Copy icon into the bundle
+    set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/res/melon.icns")
+    target_sources(melonDS PUBLIC "${RESOURCE_FILES}")
 
-add_subdirectory(src)
+    set_target_properties(melonDS PROPERTIES
+        MACOSX_BUNDLE true
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/res/melon.plist.in
+        OUTPUT_NAME melonDS
+        RESOURCE "${RESOURCE_FILES}")
 
-if (BUILD_QT_SDL)
-    add_subdirectory(src/frontend/qt_sdl)
+
+    option(MACOS_BUNDLE_LIBS "Bundle libraries with the app on macOS" OFF)
+    option(MACOS_BUILD_DMG "Build DMG image of the macOS application bundle" OFF)
+
+    if (MACOS_BUNDLE_LIBS)
+        if (MACOS_BUILD_DMG)
+            set(DMGARG "--dmg")
+        endif()
+        add_custom_command(TARGET melonDS POST_BUILD
+            COMMAND ${CMAKE_SOURCE_DIR}/tools/mac-libs.rb ${DMGARG} ${CMAKE_BINARY_DIR}
+            COMMENT "Bundling macOS libraries...")
+    endif()
+endif()
+
+if (UNIX AND NOT APPLE)
+    foreach(SIZE 16 32 48 64 128 256)
+        install(FILES ${CMAKE_SOURCE_DIR}/res/icon/melon_${SIZE}x${SIZE}.png
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/share/icons/hicolor/${SIZE}x${SIZE}/apps
+            RENAME net.kuribo64.melonDS.png)
+    endforeach()
+
+    install(FILES ${CMAKE_SOURCE_DIR}/res/net.kuribo64.melonDS.desktop DESTINATION ${CMAKE_INSTALL_PREFIX}/share/applications)
+    install(TARGETS melonDS BUNDLE DESTINATION ${CMAKE_BINARY_DIR} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+    if (NOT USE_QT6)
+        set_target_properties(melonDS PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION OFF
+            INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF)
+    endif()
+elseif(APPLE)
+    install(TARGETS melonDS BUNDLE DESTINATION "${CMAKE_INSTALL_PREFIX}/Applications")
+endif()
+
+if (ENABLE_OGLRENDERER)
+    set(MELONDS_GL_HEADER \"frontend/glad/glad.h\" CACHE STRING "Path to a header that contains OpenGL function and type declarations.")
+
+    target_compile_definitions(melonDS PUBLIC OGLRENDERER_ENABLED)
+    target_compile_definitions(melonDS PUBLIC MELONDS_GL_HEADER=${MELONDS_GL_HEADER})
+    target_compile_definitions(core PUBLIC MELONDS_GL_HEADER=${MELONDS_GL_HEADER})
 endif()
