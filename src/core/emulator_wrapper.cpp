@@ -77,3 +77,70 @@ void EmulatorCore::reset() {
 bool EmulatorCore::isRunning() const {
     return running;
 }
+#include "emulator_wrapper.h"
+#include <iostream>
+
+#include "NDS.h"
+#include "SPU.h"
+#include "GPU.h" 
+
+EmulatorCore::EmulatorCore() : melonDSInstance(nullptr), running(false) {
+    if (!audioEngine.init(48000, 2)) {
+        std::cerr << "Warning: AudioEngine failed to initialize." << std::endl;
+    }
+}
+
+EmulatorCore::~EmulatorCore() {
+    if (melonDSInstance) {
+        delete melonDSInstance;
+    }
+}
+
+bool EmulatorCore::loadROM(const std::string &romPath) {
+    if (!melonDSInstance) return false;
+    std::cout << "Loading ROM: " << romPath << std::endl;
+    running = true; 
+    return true;
+}
+
+void EmulatorCore::runFrame() {
+    if (!running || !melonDSInstance) return;
+
+    // 1. Run the emulator for exactly one frame
+    // melonDSInstance->RunFrame(); 
+
+    // 2. Extract Audio from the SPU
+    int samplesAvailable = melonDSInstance->SPU.GetOutputSize(); 
+    
+    if (samplesAvailable > 0) {
+        std::vector<int16_t> audioBuffer(samplesAvailable * 2);
+        melonDSInstance->SPU.ReadOutput(audioBuffer.data(), samplesAvailable);
+        audioEngine.queueAudio(audioBuffer);
+    }
+}
+
+const uint32_t* EmulatorCore::getFramebuffer() const {
+    if (!melonDSInstance || !running) return nullptr;
+    // return melonDSInstance->GPU.Framebuffer; 
+    return nullptr; 
+}
+
+void EmulatorCore::setInputMask(uint32_t keyMask) {
+    if (!melonDSInstance || !running) return;
+
+    // The DS hardware is active-low (0 = pressed, 1 = unpressed).
+    // We invert the mask from the ControllerManager so melonDS reads it correctly.
+    // 0x0FFF masks out just the 12 standard buttons to prevent garbage data.
+    
+    // melonDSInstance->SetKeyMask(~keyMask & 0x0FFF);
+}
+
+void EmulatorCore::reset() {
+    if (melonDSInstance) {
+        // melonDSInstance->Reset();
+    }
+}
+
+bool EmulatorCore::isRunning() const {
+    return running;
+}
