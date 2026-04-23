@@ -1,0 +1,1 @@
+'\#include <SDL2/SDL.h>\n#include <iostream>\n\nclass GamepadDetector {\npublic:\n    GamepadDetector() {\n        if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {\n            std::cerr << \
