@@ -1,71 +1,60 @@
-<p align="center"><img src="https://raw.githubusercontent.com/melonDS-emu/melonDS/master/res/icon/melon_128x128.png"></p>
-<h2 align="center"><b>melonDS</b></h2>
-<p align="center">
-<a href="http://melonds.kuribo64.net/" alt="melonDS website"><img src="https://img.shields.io/badge/website-melonds.kuribo64.net-%2331352e.svg"></a>
-<a href="http://melonds.kuribo64.net/downloads.php" alt="Release: 1.1"><img src="https://img.shields.io/badge/release-1.1-%235c913b.svg"></a>
-<a href="https://www.gnu.org/licenses/gpl-3.0" alt="License: GPLv3"><img src="https://img.shields.io/badge/License-GPL%20v3-%23ff554d.svg"></a>
-<a href="https://kiwiirc.com/client/irc.badnik.net/?nick=IRC-Source_?#melonds" alt="IRC channel: #melonds"><img src="https://img.shields.io/badge/IRC%20chat-%23melonds-%23dd2e44.svg"></a>
-<a href="https://discord.gg/pAMAtExcqV" alt="Discord"><img src="https://img.shields.io/badge/Discord-Kuribo64-7289da?logo=discord&logoColor=white"></a>
-<br>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-windows.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-windows.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-ubuntu.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-ubuntu.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-macos.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-macos.yml/badge.svg" /></a>
-<a href="https://github.com/melonDS-emu/melonDS/actions/workflows/build-bsd.yml?query=event%3Apush"><img src="https://github.com/melonDS-emu/melonDS/actions/workflows/build-bsd.yml/badge.svg" /></a>
-</p>
-DS emulator, sorta
+# libslirp
 
-The goal is to do things right and fast, akin to blargSNES (but hopefully better). But also to, you know, have a fun challenge :)
-<hr>
+libslirp is a user-mode networking library used by virtual machines,
+containers or various tools.
 
-## How to use
+## Getting Started
 
-Firmware boot (not direct boot) requires a BIOS/firmware dump from an original DS or DS Lite.
-DS firmwares dumped from a DSi or 3DS aren't bootable and only contain configuration data, thus they are only suitable when booting games directly.
+### Prerequisites
 
-### Possible firmware sizes
+A C compiler, meson and glib2 development libraries.
 
- * 128KB: DSi/3DS DS-mode firmware (reduced size due to lacking bootcode)
- * 256KB: regular DS firmware
- * 512KB: iQue DS firmware
+(see also [.gitlab-ci.yml](.gitlab-ci.yml) DEPS variable for the list
+of dependencies on Fedora)
 
-DS BIOS dumps from a DSi or 3DS can be used with no compatibility issues. DSi BIOS dumps (in DSi mode) are not compatible. Or maybe they are. I don't know.
+### Building
 
-As for the rest, the interface should be pretty straightforward. If you have a question, don't hesitate to ask, though!
+You may build and install the shared library with meson:
 
-## How to build
-See [BUILD.md](./BUILD.md) for build instructions.
+``` sh
+meson build
+ninja -C build install
+```
+And configure QEMU with --enable-slirp=system to link against it.
 
-## TODO LIST
+(QEMU may build with the submodule static library using --enable-slirp=git)
 
- * better DSi emulation
- * better OpenGL rendering
- * netplay
- * the impossible quest of pixel-perfect 3D graphics
- * support for rendering screens to separate windows
- * emulating some fancy addons
- * other non-core shit (debugger, graphics viewers, etc)
+### Testing
 
-### TODO LIST FOR LATER (low priority)
+Unfortunately, there are no automated tests available.
 
- * big-endian compatibility (Wii, etc)
- * LCD refresh time (used by some games for blending effects)
- * any feature you can eventually ask for that isn't outright stupid
+You may run QEMU ``-net user`` linked with your development version.
 
-## Credits
+## Contributing
 
- * Martin for GBAtek, a good piece of documentation
- * Cydrak for the extra 3D GPU research
- * limittox for the icon
- * All of you comrades who have been testing melonDS, reporting issues, suggesting shit, etc
+Feel free to open issues on the [project
+issues](https://gitlab.freedesktop.org/slirp/libslirp/issues) page.
 
-## Licenses
+You may clone the [gitlab
+project](https://gitlab.freedesktop.org/slirp/libslirp) and create a
+merge request.
 
-[![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
+Contributing with gitlab allows gitlab workflow, tracking issues,
+running CI etc.
 
-melonDS is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Alternatively, you may send patches to slirp@lists.freedesktop.org
+mailing list.
 
-### External
-* Images used in the Input Config Dialog - see `src/frontend/qt_sdl/InputConfig/resources/LICENSE.md`
+## Versioning
+
+We intend to use [libtool's
+versioning](https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html)
+for the shared libraries and use [SemVer](http://semver.org/) for
+project versions.
+
+For the versions available, see the [tags on this
+repository](https://gitlab.freedesktop.org/slirp/libslirp/releases).
+
+## License
+
+See the [COPYRIGHT](COPYRIGHT) file for details.

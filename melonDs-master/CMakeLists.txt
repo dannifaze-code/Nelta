@@ -1,35 +1,67 @@
-include(FixInterfaceIncludes)
+cmake_minimum_required(VERSION 3.16)
 
-add_library(net-utils STATIC
-    Net.cpp
-    Net_PCap.cpp
-    Net_Slirp.cpp
-    PacketDispatcher.cpp
-    LocalMP.cpp
-    LAN.cpp
-    Netplay.cpp
-    MPInterface.cpp
+project(libslirp VERSION 4.8.0 LANGUAGES C)
+
+set(SLIRP_MAJOR_VERSION "${libslirp_VERSION_MAJOR}")
+set(SLIRP_MINOR_VERSION "${libslirp_VERSION_MINOR}")
+set(SLIRP_MICRO_VERSION "${libslirp_VERSION_PATCH}")
+set(SLIRP_VERSION_STRING "\"${libslirp_VERSION}\"")
+
+set(SOURCES
+	src/arp_table.c
+	src/bootp.c
+	src/cksum.c
+	src/dhcpv6.c
+	src/dnssearch.c
+	src/if.c
+	src/ip6_icmp.c
+	src/ip6_input.c
+	src/ip6_output.c
+	src/ip_icmp.c
+	src/ip_input.c
+	src/ip_output.c
+	src/mbuf.c
+	src/misc.c
+	src/ncsi.c
+	src/ndp_table.c
+	src/sbuf.c
+	src/slirp.c
+	src/socket.c
+	src/state.c
+	src/stream.c
+	src/tcp_input.c
+	src/tcp_output.c
+	src/tcp_subr.c
+	src/tcp_timer.c
+	src/tftp.c
+	src/udp6.c
+	src/udp.c
+	src/util.c
+	src/version.c
+	src/vmstate.c
+
+	# glib shim
+	glib/glib.c
 )
 
-target_include_directories(net-utils PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/..")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/libslirp-version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/libslirp-version.h")
 
-option(USE_SYSTEM_LIBSLIRP "Use system libslirp instead of the bundled version" OFF)
-if (USE_SYSTEM_LIBSLIRP)
-    pkg_check_modules(Slirp REQUIRED IMPORTED_TARGET slirp)
-    fix_interface_includes(PkgConfig::Slirp)
-    target_link_libraries(net-utils PUBLIC PkgConfig::Slirp)
-else()
-    add_subdirectory(libslirp EXCLUDE_FROM_ALL)
-    target_link_libraries(net-utils PUBLIC slirp)
-endif()
+add_library(slirp STATIC ${SOURCES})
+target_compile_definitions(slirp PUBLIC LIBSLIRP_STATIC_BUILD)
 
-if (USE_VCPKG)
-    find_package(unofficial-enet CONFIG REQUIRED)
-    target_link_libraries(net-utils PRIVATE unofficial::enet::enet)
+target_include_directories(slirp SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/glib")
+target_include_directories(slirp SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_include_directories(slirp SYSTEM PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+
+target_compile_definitions(slirp PRIVATE BUILDING_LIBSLIRP)
+target_compile_definitions(slirp PRIVATE "G_LOG_DOMAIN=\"Slirp\"")
+
+if (WIN32)
+	target_link_libraries(slirp PRIVATE ws2_32 iphlpapi)
+elseif(HAIKU)
+	target_Link_libraries(slirp PRIVATE network)
+elseif(APPLE)
+	target_link_libraries(slirp PRIVATE resolv)
 else()
-    pkg_check_modules(ENet REQUIRED IMPORTED_TARGET libenet)
-    fix_interface_includes(PkgConfig::ENet)
-    target_link_libraries(net-utils PUBLIC PkgConfig::ENet)
+	set_source_files_properties(glib/glib.c PROPERTIES COMPILE_FLAGS -fvisibility=hidden)
 endif()
