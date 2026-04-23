@@ -1,1 +1,31 @@
-#ifndef EMULATOR_WRAPPER_H\n#define EMULATOR_WRAPPER_H\n\n#include <string>\n#include <vector>\n\nclass EmulatorCore {\npublic:  \n    EmulatorCore();\n    ~EmulatorCore();\n\n    bool loadROM(const std::string &romPath);\n    void runFrame();\n    std::vector<unsigned char> getFramebuffer();\n    void reset();\n    bool isRunning() const;\n\nprivate:  \n    void* melonDSInstance;  // Pointer to the melonDS instance\n    bool running;\n};\n\n#endif // EMULATOR_WRAPPER_H
+#ifndef EMULATOR_WRAPPER_H
+#define EMULATOR_WRAPPER_H
+
+#include <string>
+#include <vector>
+#include "../audio/audio_engine.h" // <-- Include our new Audio Engine
+
+// Forward declaration for melonDS core to avoid including full headers here
+namespace melonDS {
+    class NDS; 
+}
+
+class EmulatorCore {
+public:  
+    EmulatorCore();
+    ~EmulatorCore();
+
+    bool loadROM(const std::string &romPath);
+    void runFrame();
+    std::vector<unsigned char> getFramebuffer();
+    void reset();
+    bool isRunning() const;
+
+private:  
+    melonDS::NDS* melonDSInstance;  // Cast this properly instead of void*
+    bool running;
+
+    AudioEngine audioEngine;        // <-- Add the Audio Engine instance
+};
+
+#endif // EMULATOR_WRAPPER_H
