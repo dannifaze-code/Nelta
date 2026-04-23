@@ -1,0 +1,16 @@
+{  
+  "dependencies": [  
+    {  
+      "name": "qt6",  
+      "version": "*"  
+    },  
+    {  
+      "name": "sdl2",  
+      "version": "*"  
+    },  
+    {  
+      "name": "other-required-library",  
+      "version": "*"  
+    }  
+  ]  
+}
