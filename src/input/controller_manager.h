@@ -1,1 +1,29 @@
-#ifndef CONTROLLER_MANAGER_H\n#define CONTROLLER_MANAGER_H\n\n#include <string>\n#include <vector>\n\nclass ControllerManager {\npublic: \n    ControllerManager();\n    ~ControllerManager();\n\n    void addController(const std::string &controllerName);\n    void removeController(const std::string &controllerName);\n    void setProfile(const std::string &profileName);\n    std::vector<std::string> getControllers() const;\n    std::string getCurrentProfile() const;\n\nprivate: \n    std::vector<std::string> controllers;\n    std::string currentProfile;\n};\n\n#endif // CONTROLLER_MANAGER_H
+#ifndef CONTROLLER_MANAGER_H
+#define CONTROLLER_MANAGER_H
+
+#include <SDL2/SDL.h>
+#include <cstdint>
+#include <unordered_map>
+
+class ControllerManager {
+public:
+    ControllerManager();
+    ~ControllerManager();
+
+    // Process an SDL event (returns true if the event was an input event we care about)
+    bool processEvent(const SDL_Event& event);
+
+    // Get the current bitmask of all pressed keys
+    uint32_t getKeyMask() const;
+
+private:
+    uint32_t currentKeyMask;
+
+    // Maps an SDL_Keycode to an NDS Button bit
+    std::unordered_map<SDL_Keycode, uint32_t> keyMap;
+
+    // Set up the default keyboard layout
+    void setupDefaultKeyMap();
+};
+
+#endif // CONTROLLER_MANAGER_H
