@@ -3,9 +3,10 @@
 
 #include <string>
 #include <vector>
-#include "../audio/audio_engine.h" // <-- Include our new Audio Engine
+#include <cstdint>
+#include "../audio/audio_engine.h"
 
-// Forward declaration for melonDS core to avoid including full headers here
+// Forward declaration for melonDS core
 namespace melonDS {
     class NDS; 
 }
@@ -17,15 +18,18 @@ public:
 
     bool loadROM(const std::string &romPath);
     void runFrame();
+    
+    // Expose the raw 256x384 pixel buffer for the GameViewport
     const uint32_t* getFramebuffer() const;
+    
     void reset();
     bool isRunning() const;
 
 private:  
-    melonDS::NDS* melonDSInstance;  // Cast this properly instead of void*
+    melonDS::NDS* melonDSInstance;
     bool running;
 
-    AudioEngine audioEngine;        // <-- Add the Audio Engine instance
+    AudioEngine audioEngine;
 };
 
 #endif // EMULATOR_WRAPPER_H
